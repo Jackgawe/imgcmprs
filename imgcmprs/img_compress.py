@@ -1,30 +1,81 @@
 import argparse
 import os
 from PIL import Image
+import sys
+import traceback
+import shutil
 
-def compress_image(input_path, output_path, quality, lossless):
+def get_save_format(ext):
+    ext = ext.lstrip('.')
+    if ext in ('jpg', 'jpeg'):
+        return 'JPEG'
+    if ext == 'png':
+        return 'PNG'
+    return None
+
+def compress_image(input_path, output_path, quality, lossless, debug, force):
     try:
         img = Image.open(input_path)
         ext = os.path.splitext(input_path)[1].lower()
+        in_place = os.path.abspath(input_path) == os.path.abspath(output_path)
+        save_format = get_save_format(ext)
+        tmp_path = None
+        if in_place:
+            base, ext_base = os.path.splitext(input_path)
+            tmp_path = f"{base}.imgcmprs_tmp{ext_base}"
+            real_output = tmp_path
+        else:
+            real_output = output_path
+
+        if debug:
+            print(f"[DEBUG] Processing: {input_path}")
+            print(f"[DEBUG] Format: {ext}, Output: {output_path}")
+            print(f"[DEBUG] Options: quality={quality}, lossless={lossless}, in_place={in_place}, force={force}")
+            print(f"[DEBUG] Temp file: {tmp_path if in_place else 'N/A'} for in-place")
+        save_kwargs = {'format': save_format}
         if lossless:
             if ext in (".png",):
-                img.save(output_path, optimize=True)
+                img.save(real_output, optimize=True, **save_kwargs)
             elif ext in (".jpg", ".jpeg"):
-                img.save(output_path, quality=100, optimize=True, progressive=True)
+                img.save(real_output, quality=100, optimize=True, progressive=True, **save_kwargs)
             else:
-                img.save(output_path)
+                img.save(real_output, **save_kwargs)
         else:
             if ext in (".jpg", ".jpeg"):
-                img.save(output_path, optimize=True, quality=quality)
+                img.save(real_output, optimize=True, quality=quality, **save_kwargs)
             elif ext == ".png":
-                img.save(output_path, optimize=True)
+                img.save(real_output, optimize=True, **save_kwargs)
             else:
-                img.save(output_path)
-        print(f"Compressed: {input_path} -> {output_path}")
+                img.save(real_output, **save_kwargs)
+        original_size = os.path.getsize(input_path)
+        compressed_size = os.path.getsize(real_output)
+        if debug:
+            print(f"[DEBUG] Input size: {original_size} bytes ; Output size: {compressed_size} bytes")
+        if compressed_size < original_size or force:
+            if in_place:
+                shutil.move(tmp_path, input_path)
+            print(f"Compressed: {input_path} -> {output_path} [{original_size//1024}KB → {compressed_size//1024}KB]")
+            return True
+        else:
+            if in_place:
+                if tmp_path and os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+                print(f"Warning: Compression would not reduce size; in-place file left unchanged!")
+            else:
+                print(f"Warning: {output_path} is larger than or equal to original! Keeping original. [{original_size//1024}KB → {compressed_size//1024}KB]")
+                if os.path.exists(output_path):
+                    os.remove(output_path)
+            return False
     except Exception as e:
         print(f"Failed to compress {input_path}: {e}")
+        if debug:
+            traceback.print_exc()
+        if 'tmp_path' in locals() and tmp_path and os.path.exists(tmp_path):
+            os.remove(tmp_path)
+        return False
 
-def process_folder(input_folder, output_folder, quality, recursive, lossless):
+def process_folder(input_folder, output_folder, quality, recursive, lossless, debug, force):
+    changed_files = []
     for root, dirs, files in os.walk(input_folder):
         for file in files:
             if file.lower().endswith((".jpg", ".jpeg", ".png")):
@@ -32,34 +83,85 @@ def process_folder(input_folder, output_folder, quality, recursive, lossless):
                 rel_path = os.path.relpath(in_path, input_folder)
                 out_path = os.path.join(output_folder, rel_path)
                 os.makedirs(os.path.dirname(out_path), exist_ok=True)
-                compress_image(in_path, out_path, quality, lossless)
+                success = compress_image(in_path, out_path, quality, lossless, debug, force)
+                if success:
+                    changed_files.append((in_path, out_path))
         if not recursive:
             break
+    return changed_files
+
+def ask_delete_or_keep_copy(targets, force, debug):
+    # Only triggers meaningful copy if single file in-place
+    if len(targets) == 1:
+        original, compressed = targets[0]
+        in_place = os.path.abspath(original) == os.path.abspath(compressed)
+        answer = input(f"Do you want to delete the original file after compression? [y/N] ").strip().lower()
+        if answer == 'y':
+            # Overwrite already occurred if compressed, so nothing to do
+            print(f'Original file deleted (overwritten).')
+        else:
+            # In-place: keep original and save comp output to _comp.ext
+            if in_place:
+                base, ext = os.path.splitext(original)
+                comp_name = base + '_comp' + ext
+                if debug:
+                    print(f'[DEBUG] Saving compressed copy as: {comp_name}')
+                # Move current compressed result to new comp file
+                shutil.copy2(original, comp_name)
+                print(f"Compressed copy saved as: {comp_name} (original preserved)")
+            else:
+                print('Original file(s) kept.')
+    else:
+        # Folders or batch: just use original logic
+        answer = input(f"Do you want to delete the original file(s) after compression? [y/N] ").strip().lower()
+        if answer == 'y':
+            for original, compressed in targets:
+                try:
+                    os.remove(original)
+                    print(f"Deleted: {original}")
+                except Exception as e:
+                    print(f"Could not delete {original}: {e}")
+        else:
+            print('Original file(s) kept (batch mode).')
 
 def main():
-    parser = argparse.ArgumentParser(description="Image Compressor CLI Tool")
-    parser.add_argument('--input', '-i', required=True, help='Input file or folder')
-    parser.add_argument('--output', '-o', help='Output file or folder (optional)')
-    parser.add_argument('--quality', '-q', type=int, default=60, help='Compression quality (1-95, default 60; ignored if --lossless)')
-    parser.add_argument('--recursive', '-r', action='store_true', help='Recursively process folders')
-    parser.add_argument('--lossless', '-l', action='store_true', help='Use lossless compression (only for PNG/JPEG)')
+    parser = argparse.ArgumentParser(
+        description="Image Compressor CLI Tool: Lossless/lossy JPEG and PNG compression.\n\nFlags:\n  -i   Input file or folder (required)\n  -o   Output file or folder (optional)\n  -q   JPEG quality, 1-95 (default 60, ignored in lossless mode)\n  -l   Use lossless compression for PNG/JPEG\n  -r   Recursively process folders\n  -d   Enable debug output\n  -f   Force overwrite even if output is bigger",
+        formatter_class=argparse.RawTextHelpFormatter
+    )
+    parser.add_argument('-i', required=True, metavar='PATH', help='Input file or folder (required)')
+    parser.add_argument('-o', metavar='PATH', help='Output file or folder (optional)')
+    parser.add_argument('-q', type=int, default=60, metavar='N', help='JPEG quality, 1-95 (default 60, ignored with -l)')
+    parser.add_argument('-l', action='store_true', help='Lossless compression for PNG/JPEG (flag)')
+    parser.add_argument('-r', action='store_true', help='Recursively process folders (flag)')
+    parser.add_argument('-d', action='store_true', help='Enable debug output (flag)')
+    parser.add_argument('-f', action='store_true', help='Force overwrite even if output is bigger (flag)')
     args = parser.parse_args()
 
-    input_path = args.input
-    output_path = args.output
-    quality = args.quality
-    recursive = args.recursive
-    lossless = args.lossless
+    input_path = args.i
+    output_path = args.o
+    quality = args.q
+    recursive = args.r
+    lossless = args.l
+    debug = args.d
+    force = args.f
 
+    changed_files = []
     if os.path.isfile(input_path):
         out = output_path if output_path else input_path
-        compress_image(input_path, out, quality, lossless)
+        success = compress_image(input_path, out, quality, lossless, debug, force)
+        if success:
+            changed_files.append((input_path, out))
     elif os.path.isdir(input_path):
         out = output_path if output_path else input_path + "_compressed"
         os.makedirs(out, exist_ok=True)
-        process_folder(input_path, out, quality, recursive, lossless)
+        changed_files = process_folder(input_path, out, quality, recursive, lossless, debug, force)
     else:
         print("Input path is not a valid file or directory.")
+        sys.exit(1)
+
+    if changed_files:
+        ask_delete_or_keep_copy(changed_files, force, debug)
 
 if __name__ == "__main__":
     main()

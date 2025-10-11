@@ -11,7 +11,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'imgcmprs=imgcmprs.img_compress:main',
+            'img=imgcmprs.img_compress:main',
         ],
     },
     python_requires='>=3.7',

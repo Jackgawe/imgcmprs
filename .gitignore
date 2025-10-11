@@ -1,0 +1,48 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+egg-info/
+.eggs/
+*.egg
+*.egg-info
+
+# Installer logs
+g *.log
+
+# Virtual environments
+.env/
+.venv/
+env/
+venv/
+ENV/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Test images and compressed output
+*.jpg.imgcmprs_tmp*
+*_comp.*
+*.png.imgcmprs_tmp*
+
+# MacOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# PyPI
+*.tar.gz
