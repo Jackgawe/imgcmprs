@@ -4,14 +4,12 @@ __pycache__/
 *$py.class
 
 # Distribution / packaging
-.Python
 build/
-develop-eggs/
 dist/
-egg-info/
-.eggs/
-*.egg
-*.egg-info
+*.egg-info/
+imgcmprs.egg-info/
+*.whl
+*.tar.gz
 
 # Installer logs
 g *.log
@@ -33,16 +31,12 @@ ENV/
 *.sublime-project
 *.sublime-workspace
 
-# Test images and compressed output
-*.jpg.imgcmprs_tmp*
+# Test and compressed images
 *_comp.*
-*.png.imgcmprs_tmp*
+*.imgcmprs_tmp*
 
 # MacOS
 .DS_Store
 
 # Windows
 Thumbs.db
-
-# PyPI
-*.tar.gz
