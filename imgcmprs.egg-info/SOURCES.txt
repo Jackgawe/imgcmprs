@@ -1,0 +1,11 @@
+README.md
+setup.py
+imgcmprs/__init__.py
+imgcmprs/__main__.py
+imgcmprs/img_compress.py
+imgcmprs.egg-info/PKG-INFO
+imgcmprs.egg-info/SOURCES.txt
+imgcmprs.egg-info/dependency_links.txt
+imgcmprs.egg-info/entry_points.txt
+imgcmprs.egg-info/requires.txt
+imgcmprs.egg-info/top_level.txt
