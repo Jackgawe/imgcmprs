@@ -1,95 +1,42 @@
-# img
+# imgcmprs
 
-A fast, easy-to-use Python CLI tool for compressing JPEG and PNG images with both lossless and lossy modes.
+**imgcmprs** is a fast and safe command-line tool to efficiently compress JPEG and PNG images—supporting both lossless and lossy modes, for single files or entire directories.
 
----
+## 🚀 Features
 
-## Features
-- Compresses images individually or in bulk (folders)
-- Supports JPEG and PNG
-- **Lossless mode** (`-l`): Optimizes files without visible quality loss
-- **Lossy mode** (`-q`): Reduce file size by lowering image quality
-- Recursive directory support
-- Custom output folder
-- Prompts to delete originals after compression
-- Skips replacement if compressed file is larger
-- Cross-platform, requires Python 3.7+
+- **Lossless & Lossy Compression:** Supports both lossless and lossy compression for JPEG and PNG images.
+- **Batch & In-Place Modes:** Process many files at once or compress in-place.
+- **Recursive Directory Processing:** Optionally traverse and compress entire directory trees.
+- **CLI Simplicity:** Intuitive command-line interface with helpful flags.
+- **Safe by Design:** Original files are always preserved unless you choose to delete them post-compression.
 
----
+## 📦 Installation
 
-## Installation
+**Python 3.7+ is required.**
 
-1. Install Python 3.7+
-2. Clone this repo and install:
-   ```bash
-   pip install -e .
-   # Or for user-local install:
-   pip install --user .
-   ```
-
----
-
-## Usage
-
-### Compress a single image (lossy, 60% quality):
-
+Install from PyPI:
 ```bash
-img -i myphoto.jpg -q 60
+pip install imgcmprs
 ```
 
-### Compress a folder (lossless, best for PNG):
-
+Install from source (in editable or user-local mode):
 ```bash
-img -i images/ -o optimized/ -l -r
+pip install -e .
+# Or
+pip install --user .
 ```
 
-### Options (Single-letter flags)
-| Flag | Meaning                        | Example                   |
-|------|--------------------------------|---------------------------|
-| -i   | Input file or folder (required)| `-i mypic.jpg`            |
-| -o   | Output file or folder (optional)| `-o compressed/`         |
-| -q   | JPEG quality (default 60; ignored in lossless mode)| `-q 80` |
-| -l   | Use lossless compression       | `-l`                      |
-| -r   | Recursively process folders    | `-r`                      |
+## 🤝 Contributing
 
-- All flags are **single-letter** for speed and ease: `-i`, `-o`, `-q`, `-l`, `-r`.
-- After compressing, you will be **prompted to delete the original files**.
-- If the compressed file is larger, the original is kept and a warning is printed.
+We welcome all contributions! To get started:
 
----
+1. **Fork** this repository on GitHub.
+2. **Clone** your fork and create a feature branch.
+3. Implement your changes, write clear commit messages, and add tests if possible.
+4. Open a pull request with a thorough description of what you've changed.
 
-## Requirements
-- Python 3.7+
-- Pillow (`pip install Pillow`)
+For bug reports or feature requests, please [open an issue](https://github.com/jackgawe/imgcmprs/issues).
 
----
-
-## Notes
-- Lossless for PNG is truly lossless; for JPEG, uses `quality=100` with optimizations (minor effect but no further visual loss).
-- Output defaults to `_compressed` directory if not specified for folders.
-- Re-run with `-l` to optimize previously compressed images further (if possible).
-
----
-
-## Publishing to PyPI
-
-1. **Ensure you have an account on [PyPI](https://pypi.org/).**
-2. **Install required tools:**
-    ```bash
-    pip install build twine
-    ```
-3. **Build your package:**
-    ```bash
-    python -m build
-    ```
-    This creates a `dist/` folder with your distributable files (tar.gz and .whl).
-4. **Upload to PyPI:**
-    ```bash
-    python -m twine upload dist/*
-    ```
-5. **Enter your PyPI credentials when prompted.**
-
----
-
-## License
-MIT
+Thank you for making **imgcmprs** better!
+  
+— Made with ❤️ by Eyad Mohammed, from Egypt
